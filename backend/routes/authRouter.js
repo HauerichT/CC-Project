@@ -12,22 +12,24 @@ router.post("/register", async (req, res) => {
   const { email, password, name } = req.body;
 
   try {
-    const existingUserByEmail = await prisma.user.findUnique({
+    const existingUserByEmail = await prisma.user.findFirst({
       where: { email },
     });
     if (existingUserByEmail) {
-      return res.status(400).json({
+      return res.status(200).json({
+        success: false,
         message: "Nutzer mit dieser E-Mail-Adresse existiert bereits.",
       });
     }
 
-    const existingUserByName = await prisma.user.findUnique({
+    const existingUserByName = await prisma.user.findFirst({
       where: { name },
     });
     if (existingUserByName) {
-      return res
-        .status(400)
-        .json({ message: "Nutzername ist bereits vergeben." });
+      return res.status(200).json({
+        success: false,
+        message: "Nutzername ist bereits vergeben.",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -36,11 +38,16 @@ router.post("/register", async (req, res) => {
       data: { email, password: hashedPassword, name },
     });
 
-    res
-      .status(200)
-      .json({ message: "Nutzer erfolgreich registriert!", newUser });
+    res.status(200).json({
+      success: true,
+      message: "Nutzer erfolgreich registriert!",
+      data: newUser,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Fehler während der Registrierung!" });
+    res.status(500).json({
+      success: false,
+      message: "Fehler während der Registrierung!",
+    });
   }
 });
 
@@ -52,21 +59,34 @@ router.post("/login", async (req, res) => {
       where: { email },
     });
     if (!user) {
-      return res.status(400).json({ message: "Nutzer existiert noch nicht." });
+      return res.status(200).json({
+        success: false,
+        message: "Nutzer existiert noch nicht.",
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Passwort ist falsch." });
+      return res.status(200).json({
+        success: false,
+        message: "Passwort ist falsch.",
+      });
     }
 
     const token = jwt.sign({ user_id: user.user_id }, SECRET_KEY, {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ token, message: "Login erfolgreich!" });
+    res.status(200).json({
+      success: true,
+      message: "Login erfolgreich!",
+      data: token,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Fehler während des Logins!" });
+    res.status(500).json({
+      success: false,
+      message: "Fehler während des Logins!",
+    });
   }
 });
 
