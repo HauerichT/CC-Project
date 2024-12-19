@@ -1,38 +1,28 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const dotenv = require('dotenv');
-const mysql = require('mysql2/promise');
-
-dotenv.config();
-
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+const port = 8000;
 
-app.use(express.json());
-app.use(express.static('public'));
+// Import route handlers for different functionalities
+const authRouter = require("./routes/authRouter");
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
+// Enable CORS for cross-origin requests
+app.use(cors());
+
+// Middleware to parse JSON requests with a limit of 1000mb
+app.use(express.json({ limit: "1000mb" }));
+// Middleware to parse URL-encoded requests with a limit of 1000mb
+app.use(express.urlencoded({ limit: "1000mb", extended: true }));
+
+// Setup routes for different API endpoints
+app.use("/auth", authRouter);
+
+// Define a basic route for the root URL
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
 });
 
-// Beispiel-Endpunkte
-app.get('/api/files', async (req, res) => {
-  const [rows] = await db.query('SELECT * FROM files');
-  res.json(rows);
+// Start the server and listen on the specified port
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
-
-// Echtzeitkommunikation mit Socket.IO
-io.on('connection', (socket) => {
-  console.log('Client connected');
-  socket.on('file-uploaded', (file) => {
-    io.emit('file-update', file);
-  });
-});
-
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
