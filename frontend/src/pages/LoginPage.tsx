@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       if (response?.success) {
         showSnackbar(response.message, "success");
-        if (response.data) {
+        if (isLogin) {
           localStorage.setItem("token", response.data);
           window.location.href = "/";
         } else {

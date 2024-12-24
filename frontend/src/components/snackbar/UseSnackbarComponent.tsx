@@ -25,7 +25,7 @@ export default function useSnackbar() {
   const SnackbarUI = () => (
     <Snackbar
       open={snackbar.open}
-      autoHideDuration={2000}
+      autoHideDuration={4000}
       onClose={closeSnackbar}
       anchorOrigin={{ vertical: "top", horizontal: "right" }}
     >

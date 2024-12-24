@@ -34,14 +34,13 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await prisma.user.create({
+    await prisma.user.create({
       data: { email, password: hashedPassword, name },
     });
 
     res.status(200).json({
       success: true,
       message: "Nutzer erfolgreich registriert!",
-      data: newUser,
     });
   } catch (error) {
     res.status(500).json({
@@ -73,7 +72,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ user_id: user.user_id }, SECRET_KEY, {
+    const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
       expiresIn: "1h",
     });
 

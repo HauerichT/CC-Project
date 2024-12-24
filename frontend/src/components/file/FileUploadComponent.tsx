@@ -22,7 +22,6 @@ export default function FileUploadComponent({
   const [loading, setLoading] = useState(false);
   const { showSnackbar, SnackbarComponent } = useSnackbar();
 
-  // Handle file change when a file is selected
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const selectedFile = event.target.files[0];
@@ -32,7 +31,6 @@ export default function FileUploadComponent({
     }
   };
 
-  // Handle file upload
   const handleUpload = async () => {
     if (!file) {
       showSnackbar("Bitte Datei auswählen!", "error");
@@ -42,12 +40,17 @@ export default function FileUploadComponent({
     setLoading(true);
 
     try {
-      const response = await upload({ file });
-      console.log(response);
+      const response = await upload(file);
+      if (response.success) {
+        showSnackbar(response.message, "success");
+      } else {
+        showSnackbar(response.message, "error");
+      }
     } catch (error) {
-      console.error("Fehler beim Hochladen:", error);
+      showSnackbar(String(error), "error");
     } finally {
       setLoading(false);
+      onClose();
     }
   };
 
@@ -63,7 +66,6 @@ export default function FileUploadComponent({
             <input type="file" hidden onChange={handleFileChange} />
           </Button>
 
-          {/* Anzeigen des Dateinamens */}
           {file && (
             <Typography variant="body2" sx={{ mt: 2 }}>
               Ausgewählte Datei: {file.name}
