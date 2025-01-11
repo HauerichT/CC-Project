@@ -56,7 +56,6 @@ export default function LoginPage() {
           });
 
       if (response?.success) {
-        showSnackbar(response.message, "success");
         if (isLogin) {
           localStorage.setItem("token", response.data);
           window.location.href = "/";
@@ -82,7 +81,7 @@ export default function LoginPage() {
           direction="row"
           justifyContent="center"
           alignItems="center"
-          sx={{ width: 1, height: "50vh" }}
+          sx={{ width: 1, height: "80vh" }}
         >
           <Paper
             elevation={6}

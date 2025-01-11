@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Box, Button } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
-import FileUploadComponent from "../components/file/FileUploadComponent";
-import { getUserFiles } from "../apis/file";
+import { Box, IconButton } from "@mui/material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { getUserFiles, download, deleteFile } from "../apis/file";
 import useSnackbar from "../components/snackbar/UseSnackbarComponent";
+import DownloadIcon from "@mui/icons-material/Download";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { socket } from "../utils/socket";
+import { getUserIdFromToken } from "../utils/authUtils";
 
 interface File {
   id: number;
@@ -14,59 +17,116 @@ interface File {
 }
 
 export default function FileStoragePage() {
-  const [openDialog, setOpenDialog] = useState(false);
   const [files, setFiles] = useState<File[] | null>(null);
   const { showSnackbar, SnackbarComponent } = useSnackbar();
 
-  useEffect(() => {
-    const _getUserFiles = async () => {
-      try {
-        const result = await getUserFiles();
-        setFiles(result.files);
-      } catch (error) {
-        showSnackbar(String(error), "error");
+  const fetchFiles = async () => {
+    try {
+      const result = await getUserFiles();
+      setFiles(result.files);
+    } catch (error) {
+      showSnackbar(String(error), "error");
+    }
+  };
+
+  socket.on(
+    "fileUploaded",
+    ({
+      originalName,
+      sessionId,
+    }: {
+      originalName: string;
+      sessionId: string;
+    }) => {
+      if (sessionId === localStorage.getItem("token")) {
+        console.log("Upload File vom gleichen Token", originalName, sessionId);
+      } else {
+        console.log("Upload File vom anderen Token", originalName, sessionId);
       }
-    };
-    _getUserFiles();
+      fetchFiles();
+    }
+  );
+
+  socket.on(
+    "fileDeleted",
+    ({
+      originalName,
+      sessionId,
+    }: {
+      originalName: string;
+      sessionId: string;
+    }) => {
+      if (sessionId === localStorage.getItem("token")) {
+        console.log("Delete File vom gleichen Token", originalName, sessionId);
+      } else {
+        console.log("Delete File vom anderen Token", originalName, sessionId);
+      }
+      fetchFiles();
+    }
+  );
+
+  useEffect(() => {
+    socket.emit("joinRoom", getUserIdFromToken());
+    fetchFiles();
   }, []);
+
+  const handleDownload = async (fileId: number, fileName: string) => {
+    try {
+      await download(fileId, fileName);
+    } catch (error) {
+      showSnackbar(String(error), "error");
+    }
+  };
+
+  const handleDelete = async (fileId: number) => {
+    try {
+      await deleteFile(fileId);
+      fetchFiles();
+    } catch (error) {
+      showSnackbar(String(error), "error");
+    }
+  };
+
+  const columns: GridColDef[] = [
+    { field: "id", headerName: "ID", width: 100 },
+    { field: "originalName", headerName: "Dateiname", width: 400 },
+    { field: "uploadedAt", headerName: "Hochgeladen am", width: 400 },
+    {
+      field: "download",
+      headerName: "Download",
+      width: 120,
+      renderCell: (params) => (
+        <IconButton
+          color="primary"
+          onClick={() => handleDownload(params.row.id, params.row.originalName)}
+        >
+          <DownloadIcon />
+        </IconButton>
+      ),
+    },
+    {
+      field: "delete",
+      headerName: "Löschen",
+      width: 120,
+      renderCell: (params) => (
+        <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+          <DeleteIcon />
+        </IconButton>
+      ),
+    },
+  ];
 
   return (
     <>
       <SnackbarComponent />
 
-      <Box sx={{ height: "100vh", width: "100%" }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setOpenDialog(true)}
-          sx={{ mb: 2 }}
-        >
-          Datei Hochladen
-        </Button>
-
-        <Box sx={{ height: 400, width: "100%" }}>
-          <DataGrid
-            rows={files || []}
-            getRowId={(row) => row.id}
-            columns={[
-              { field: "id", headerName: "ID", width: 90 },
-              {
-                field: "originalName",
-                headerName: "Original Name",
-                width: 150,
-              },
-              { field: "uniqueName", headerName: "Unique Name", width: 150 },
-              { field: "filePath", headerName: "File Path", width: 250 },
-              { field: "uploadedAt", headerName: "Uploaded At", width: 180 },
-            ]}
-            checkboxSelection
-            disableRowSelectionOnClick
-          />
-        </Box>
-
-        <FileUploadComponent
-          open={openDialog}
-          onClose={() => setOpenDialog(false)}
+      <Box sx={{ height: "100vh", width: "100%", marginTop: "20px" }}>
+        <DataGrid
+          rows={files || []}
+          getRowId={(row) => row.id}
+          columns={columns}
+          checkboxSelection
+          disableRowSelectionOnClick
         />
       </Box>
     </>

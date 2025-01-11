@@ -40,12 +40,7 @@ export default function FileUploadComponent({
     setLoading(true);
 
     try {
-      const response = await upload(file);
-      if (response.success) {
-        showSnackbar(response.message, "success");
-      } else {
-        showSnackbar(response.message, "error");
-      }
+      await upload(file);
     } catch (error) {
       showSnackbar(String(error), "error");
     } finally {
