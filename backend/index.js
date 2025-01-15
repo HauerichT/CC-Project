@@ -47,15 +47,20 @@ app.use((req, res, next) => {
 app.use("/auth", authRouter);
 app.use("/file", fileRouter);
 
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
+
 // Health-Check Endpoints
 app.get("/health/backend", (req, res) => {
   res.set("Content-Type", "text/plain");
-  res.status(200).send("UP");
+  res.status(200).send("backend_health 1");
 });
 
 app.get("/health/frontend", (req, res) => {
   res.set("Content-Type", "text/plain");
-  res.status(200).send("UP");
+  res.status(200).send("frontend_health 1");
 });
 
 app.get("/health/database", async (req, res) => {
@@ -63,10 +68,10 @@ app.get("/health/database", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.set("Content-Type", "text/plain");
-    res.status(200).send("UP");
+    res.status(200).send("database_health 1");
   } catch (error) {
     res.set("Content-Type", "text/plain");
-    res.status(500).send("DOWN");
+    res.status(500).send("database_health 0");
   } finally {
     await prisma.$disconnect();
   }
