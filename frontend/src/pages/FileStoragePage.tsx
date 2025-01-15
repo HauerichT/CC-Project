@@ -39,9 +39,16 @@ export default function FileStoragePage() {
       sessionId: string;
     }) => {
       if (sessionId === localStorage.getItem("token")) {
-        console.log("Upload File vom gleichen Token", originalName, sessionId);
+        showSnackbar(
+          "Datei wurde erfolgreich hochgeladen: " + originalName,
+          "success"
+        );
       } else {
-        console.log("Upload File vom anderen Token", originalName, sessionId);
+        showSnackbar(
+          "Datei wurde auf einem anderen Client erfolgreich hochgeladen: " +
+            originalName,
+          "success"
+        );
       }
       fetchFiles();
     }
@@ -57,9 +64,16 @@ export default function FileStoragePage() {
       sessionId: string;
     }) => {
       if (sessionId === localStorage.getItem("token")) {
-        console.log("Delete File vom gleichen Token", originalName, sessionId);
+        showSnackbar(
+          "Datei wurde erfolgreich gelöscht: " + originalName,
+          "success"
+        );
       } else {
-        console.log("Delete File vom anderen Token", originalName, sessionId);
+        showSnackbar(
+          "Datei wurde auf einem anderen Client erfolgreich gelöscht: " +
+            originalName,
+          "success"
+        );
       }
       fetchFiles();
     }

@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "file_storage_backend"
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: "file_storage_health_backend"
+    metrics_path: /health/backend
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: "file_storage_health_frontend"
+    metrics_path: /health/frontend
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: "file_storage_health_database"
+    metrics_path: /health/database
+    static_configs:
+      - targets: ["backend:8000"]

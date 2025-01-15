@@ -3,12 +3,14 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
+const { latencyHistogram, availabilityCounter } = require("../metrics");
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 const storageDirectory = path.join(__dirname, "../file_storage");
 
+// Extract the userId of the request
 const extractUserId = (req, res, next) => {
   const userId = req.headers["user-id"] || req.body.userId;
   if (!userId) {
@@ -20,13 +22,10 @@ const extractUserId = (req, res, next) => {
   next();
 };
 
+// Init the storage
 const storage = multer.diskStorage({
   destination: (req, _file, cb) => {
     const userId = req.userId;
-    if (!userId) {
-      return cb(new Error("Eine userId ist erforderlich!"), null);
-    }
-
     const userFolder = path.join(storageDirectory, userId);
 
     if (!fs.existsSync(userFolder)) {
@@ -42,22 +41,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+/** Upload a new file */
 router.post(
   "/upload",
   extractUserId,
   upload.single("file"),
   async (req, res) => {
+    const start = Date.now();
+    const end = latencyHistogram.startTimer({ operation: "upload" });
     try {
       const userId = parseInt(req.userId, 10);
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "Eine userId ist erforderlich!",
-        });
-      }
-
       const { originalname, filename, path: filePath } = req.file;
 
+      // Save file informations in database
       const file = await prisma.file.create({
         data: {
           originalName: originalname,
@@ -66,7 +62,6 @@ router.post(
           userId: userId,
         },
       });
-
       await prisma.userFileAccess.create({
         data: {
           userId: userId,
@@ -74,60 +69,94 @@ router.post(
         },
       });
 
-      return res.status(200).json({
+      req.io.to(userId).emit("fileUploaded", {
+        originalName: originalname,
+        sessionId: req.headers["token-auth"],
+      });
+
+      const latency = Date.now() - start;
+      latencyHistogram.observe({ operation: "upload" }, latency / 1000);
+
+      availabilityCounter.inc({ operation: "upload", status: "success" });
+      res.status(200).json({
         success: true,
         message: "Datei erfolgreich hochgeladen.",
       });
     } catch (error) {
       console.error(error);
+      availabilityCounter.inc({ operation: "upload", status: "failure" });
       res.status(500).json({
         success: false,
         message: "Fehler beim Upload!",
       });
+    } finally {
+      end();
     }
   }
 );
 
-router.get("/download/:fileId", async (req, res) => {
+/** Delete a existing file */
+router.delete("/delete/:fileId/:token", extractUserId, async (req, res) => {
+  const start = Date.now();
+  const end = latencyHistogram.startTimer({ operation: "delete" });
   try {
-    const { fileId } = req.params;
+    const { fileId, token } = req.params;
 
+    // Find file to delete in database
     const file = await prisma.file.findUnique({
-      where: { fileId: parseInt(fileId, 10) },
+      where: { id: parseInt(fileId, 10) },
     });
-
     if (!file) {
+      availabilityCounter.inc({ operation: "delete", status: "failure" });
       return res.status(200).json({
         success: false,
         message: "Datei nicht gefunden!",
       });
     }
 
-    return res.download(file.filePath, file.originalName);
+    // Delete file from database
+    await prisma.file.delete({
+      where: { id: parseInt(fileId, 10) },
+    });
+
+    const originalName = file.originalName;
+    const userId = file.userId;
+
+    // Send real time information to all clients
+    req.io.to(userId).emit("fileDeleted", {
+      originalName,
+      sessionId: token,
+    });
+
+    const latency = Date.now() - start;
+    latencyHistogram.observe({ operation: "delete" }, latency / 1000);
+
+    availabilityCounter.inc({ operation: "delete", status: "success" });
+    res.status(200).json({
+      success: true,
+      message: "Datei erfolgreich gelöscht.",
+    });
   } catch (error) {
     console.error(error);
+    availabilityCounter.inc({ operation: "delete", status: "failure" });
     res.status(500).json({
       success: false,
-      message: "Fehler beim Herunterladen!",
+      message: "Fehler beim Löschen!",
     });
+  } finally {
+    end();
   }
 });
 
+/** Get all files of an user */
 router.get("/get-all-files/:userId", async (req, res) => {
+  const end = latencyHistogram.startTimer({ operation: "get-all-files" });
   try {
     const { userId } = req.params;
 
-    if (!userId || isNaN(parseInt(userId))) {
-      return res.status(200).json({
-        success: false,
-        message: "Eine gültige userId ist erforderlich!",
-      });
-    }
-
+    // Select all files of the user
     const files = await prisma.file.findMany({
-      where: {
-        userId: parseInt(userId, 10),
-      },
+      where: { userId: parseInt(userId, 10) },
       select: {
         id: true,
         originalName: true,
@@ -137,16 +166,89 @@ router.get("/get-all-files/:userId", async (req, res) => {
       },
     });
 
-    return res.status(200).json({
+    availabilityCounter.inc({ operation: "get-all-files", status: "success" });
+    res.status(200).json({
       success: true,
       files,
     });
   } catch (error) {
     console.error(error);
+    availabilityCounter.inc({ operation: "get-all-files", status: "failure" });
     res.status(500).json({
       success: false,
       message: "Fehler beim Abrufen der Dateien!",
     });
+  } finally {
+    end();
+  }
+});
+
+/** Download a file */
+router.get("/download/:fileId", extractUserId, async (req, res) => {
+  const end = latencyHistogram.startTimer({ operation: "download" });
+  try {
+    const { fileId } = req.params;
+    const userId = parseInt(req.userId, 10);
+
+    // Check if file exists
+    const file = await prisma.file.findUnique({
+      where: { id: parseInt(fileId, 10) },
+    });
+    if (!file) {
+      availabilityCounter.inc({ operation: "download", status: "failure" });
+      return res.status(200).json({
+        success: false,
+        message: "Datei nicht gefunden!",
+      });
+    }
+
+    // Check if user has access
+    const hasAccess = await prisma.userFileAccess.findFirst({
+      where: {
+        userId: userId,
+        fileId: parseInt(fileId, 10),
+      },
+    });
+    if (!hasAccess) {
+      availabilityCounter.inc({ operation: "download", status: "failure" });
+      return res.status(200).json({
+        success: false,
+        message: "Zugriff verweigert!",
+      });
+    }
+
+    const filePath = file.filePath;
+
+    // Check if file exists in storage
+    if (!fs.existsSync(filePath)) {
+      availabilityCounter.inc({ operation: "download", status: "failure" });
+      return res.status(200).json({
+        success: false,
+        message: "Datei wurde nicht auf dem Server gefunden!",
+      });
+    }
+
+    // Return file
+    res.download(filePath, file.originalName, (err) => {
+      if (err) {
+        console.error(err);
+        availabilityCounter.inc({ operation: "download", status: "failure" });
+        return res.status(200).json({
+          success: false,
+          message: "Fehler beim Herunterladen der Datei!",
+        });
+      }
+    });
+    availabilityCounter.inc({ operation: "download", status: "success" });
+  } catch (error) {
+    console.error(error);
+    availabilityCounter.inc({ operation: "download", status: "failure" });
+    res.status(500).json({
+      success: false,
+      message: "Interner Serverfehler!",
+    });
+  } finally {
+    end();
   }
 });
 

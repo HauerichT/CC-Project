@@ -13,28 +13,42 @@ services:
     build:
       context: ./backend
     ports:
-      - "5000:5000"
+      - "8000:8000"
     depends_on:
       - database
     environment:
-      DB_HOST: mysql
-      DB_USER: user
-      DB_PASS: password
-      DB_NAME: file_storage
+      DATABASE_URL: "mysql://root@host.docker.internal:3306/cc_project"
 
   database:
     image: mysql:8
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: file_storage
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: cc_project
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
 volumes:
   mysql-data:
+  grafana-data:

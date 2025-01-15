@@ -8,35 +8,35 @@ datasource db {
 }
 
 model User {
-  id             Int              @id @default(autoincrement()) // Primärschlüssel
+  id             Int              @id @default(autoincrement())
   email          String           @unique @db.VarChar(255)
   password       String           @db.VarChar(255)
   name           String?          @db.VarChar(255)
   createdAt      DateTime?        @default(now()) @db.DateTime(0)
-  files          File[]           // Relation zu hochgeladenen Dateien
-  UserFileAccess UserFileAccess[] // Relation zu Zugriffsrechten
+  files          File[]
+  UserFileAccess UserFileAccess[]
 }
 
 model File {
-  id             Int              @id @default(autoincrement()) // Primärschlüssel
-  originalName   String           @db.VarChar(255) // Original-Dateiname
-  uniqueName     String           @unique @db.VarChar(255) // Eindeutiger Dateiname
-  filePath       String           @db.VarChar(255) // Speicherpfad
+  id             Int              @id @default(autoincrement())
+  originalName   String           @db.VarChar(255)
+  uniqueName     String           @unique @db.VarChar(255)
+  filePath       String           @db.VarChar(255)
   uploadedAt     DateTime?        @default(now()) @db.DateTime(0)
-  userId         Int              // Fremdschlüssel für den Besitzer der Datei
+  userId         Int
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  UserFileAccess UserFileAccess[] // Benutzerzugriff auf Dateien
+  UserFileAccess UserFileAccess[]
 
-  @@index([userId]) // Index für Fremdschlüssel
+  @@index([userId])
 }
 
 model UserFileAccess {
-  id     Int   @id @default(autoincrement()) // Primärschlüssel
-  userId Int   // Fremdschlüssel für Benutzer
-  fileId Int   // Fremdschlüssel für Datei
-  User   User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  File   File  @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id     Int  @id @default(autoincrement())
+  userId Int
+  fileId Int
+  File   File @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, fileId]) // Benutzer-Datei-Kombination eindeutig
-  @@index([fileId]) // Index für Datei-ID
+  @@unique([userId, fileId])
+  @@index([fileId])
 }
