@@ -49,30 +49,27 @@ app.use("/file", fileRouter);
 
 // Health-Check Endpoints
 app.get("/health/backend", (req, res) => {
-  res.status(200).json({ status: "UP" });
+  res.set("Content-Type", "text/plain");
+  res.status(200).send("UP");
 });
 
 app.get("/health/frontend", (req, res) => {
-  // Implementiere hier die Logik, um den Status des Frontends zu überprüfen
-  res.status(200).json({ status: "UP" });
+  res.set("Content-Type", "text/plain");
+  res.status(200).send("UP");
 });
 
 app.get("/health/database", async (req, res) => {
   const prisma = new PrismaClient();
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ status: "UP" });
+    res.set("Content-Type", "text/plain");
+    res.status(200).send("UP");
   } catch (error) {
-    res.status(500).json({ status: "DOWN" });
+    res.set("Content-Type", "text/plain");
+    res.status(500).send("DOWN");
   } finally {
     await prisma.$disconnect();
   }
-});
-
-// Metrics endpoint
-app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", register.contentType);
-  res.end(await register.metrics());
 });
 
 // Start server
