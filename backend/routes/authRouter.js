@@ -2,7 +2,6 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
-const { latencyHistogram, availabilityCounter } = require("../metrics");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -10,7 +9,6 @@ const router = express.Router();
 const SECRET_KEY = "cc_project";
 
 router.post("/register", async (req, res) => {
-  const end = latencyHistogram.startTimer({ operation: "register" });
   const { email, password, name } = req.body;
 
   try {
@@ -18,8 +16,6 @@ router.post("/register", async (req, res) => {
       where: { email },
     });
     if (existingUserByEmail) {
-      availabilityCounter.inc({ operation: "register", status: "failure" });
-      end();
       return res.status(200).json({
         success: false,
         message: "Nutzer mit dieser E-Mail-Adresse existiert bereits.",
@@ -30,8 +26,6 @@ router.post("/register", async (req, res) => {
       where: { name },
     });
     if (existingUserByName) {
-      availabilityCounter.inc({ operation: "register", status: "failure" });
-      end();
       return res.status(200).json({
         success: false,
         message: "Nutzername ist bereits vergeben.",
@@ -44,15 +38,11 @@ router.post("/register", async (req, res) => {
       data: { email, password: hashedPassword, name },
     });
 
-    availabilityCounter.inc({ operation: "register", status: "success" });
-    end();
     res.status(200).json({
       success: true,
       message: "Nutzer erfolgreich registriert!",
     });
   } catch (error) {
-    availabilityCounter.inc({ operation: "register", status: "failure" });
-    end();
     res.status(500).json({
       success: false,
       message: "Fehler während der Registrierung!",
@@ -61,7 +51,6 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const end = latencyHistogram.startTimer({ operation: "login" });
   const { email, password } = req.body;
 
   try {
@@ -69,8 +58,6 @@ router.post("/login", async (req, res) => {
       where: { email },
     });
     if (!user) {
-      availabilityCounter.inc({ operation: "login", status: "failure" });
-      end();
       return res.status(200).json({
         success: false,
         message: "Nutzer existiert noch nicht.",
@@ -79,8 +66,6 @@ router.post("/login", async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      availabilityCounter.inc({ operation: "login", status: "failure" });
-      end();
       return res.status(200).json({
         success: false,
         message: "Passwort ist falsch.",
@@ -91,16 +76,12 @@ router.post("/login", async (req, res) => {
       expiresIn: "1h",
     });
 
-    availabilityCounter.inc({ operation: "login", status: "success" });
-    end();
     res.status(200).json({
       success: true,
       message: "Login erfolgreich!",
       data: token,
     });
   } catch (error) {
-    availabilityCounter.inc({ operation: "login", status: "failure" });
-    end();
     res.status(500).json({
       success: false,
       message: "Fehler während des Logins!",

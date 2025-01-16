@@ -3,7 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
-const { latencyHistogram, availabilityCounter } = require("../metrics");
+const { availabilityCounter } = require("../metrics");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -47,8 +47,8 @@ router.post(
   extractUserId,
   upload.single("file"),
   async (req, res) => {
-    const start = Date.now();
-    const end = latencyHistogram.startTimer({ operation: "upload" });
+    console.log(`Upload-Handler aufgerufen: userId=${req.userId}`);
+    const clientStartTimestamp = parseInt(req.body.startTimestamp, 10);
     try {
       const userId = parseInt(req.userId, 10);
       const { originalname, filename, path: filePath } = req.file;
@@ -72,10 +72,8 @@ router.post(
       req.io.to(userId).emit("fileUploaded", {
         originalName: originalname,
         sessionId: req.headers["token-auth"],
+        clientStartTimestamp: clientStartTimestamp,
       });
-
-      const latency = Date.now() - start;
-      latencyHistogram.observe({ operation: "upload" }, latency / 1000);
 
       availabilityCounter.inc({ operation: "upload", status: "success" });
       res.status(200).json({
@@ -89,68 +87,66 @@ router.post(
         success: false,
         message: "Fehler beim Upload!",
       });
-    } finally {
-      end();
     }
   }
 );
 
 /** Delete a existing file */
-router.delete("/delete/:fileId/:token", extractUserId, async (req, res) => {
-  const start = Date.now();
-  const end = latencyHistogram.startTimer({ operation: "delete" });
-  try {
-    const { fileId, token } = req.params;
+router.delete(
+  "/delete/:fileId/:token/:startTimestamp",
+  extractUserId,
+  async (req, res) => {
+    try {
+      const { fileId, token, startTimestamp } = req.params;
 
-    // Find file to delete in database
-    const file = await prisma.file.findUnique({
-      where: { id: parseInt(fileId, 10) },
-    });
-    if (!file) {
+      console.log(`Upload-Handler aufgerufen: userId=${req.userId}`);
+      const clientStartTimestamp = parseInt(startTimestamp, 10);
+
+      // Find file to delete in database
+      const file = await prisma.file.findUnique({
+        where: { id: parseInt(fileId, 10) },
+      });
+      if (!file) {
+        availabilityCounter.inc({ operation: "delete", status: "failure" });
+        return res.status(200).json({
+          success: false,
+          message: "Datei nicht gefunden!",
+        });
+      }
+
+      // Delete file from database
+      await prisma.file.delete({
+        where: { id: parseInt(fileId, 10) },
+      });
+
+      const originalName = file.originalName;
+      const userId = file.userId;
+
+      // Send real time information to all clients
+      req.io.to(userId).emit("fileDeleted", {
+        originalName,
+        sessionId: token,
+        clientStartTimestamp: clientStartTimestamp,
+      });
+
+      availabilityCounter.inc({ operation: "delete", status: "success" });
+      res.status(200).json({
+        success: true,
+        message: "Datei erfolgreich gelöscht.",
+      });
+    } catch (error) {
+      console.error(error);
       availabilityCounter.inc({ operation: "delete", status: "failure" });
-      return res.status(200).json({
+      res.status(500).json({
         success: false,
-        message: "Datei nicht gefunden!",
+        message: "Fehler beim Löschen!",
       });
     }
-
-    // Delete file from database
-    await prisma.file.delete({
-      where: { id: parseInt(fileId, 10) },
-    });
-
-    const originalName = file.originalName;
-    const userId = file.userId;
-
-    // Send real time information to all clients
-    req.io.to(userId).emit("fileDeleted", {
-      originalName,
-      sessionId: token,
-    });
-
-    const latency = Date.now() - start;
-    latencyHistogram.observe({ operation: "delete" }, latency / 1000);
-
-    availabilityCounter.inc({ operation: "delete", status: "success" });
-    res.status(200).json({
-      success: true,
-      message: "Datei erfolgreich gelöscht.",
-    });
-  } catch (error) {
-    console.error(error);
-    availabilityCounter.inc({ operation: "delete", status: "failure" });
-    res.status(500).json({
-      success: false,
-      message: "Fehler beim Löschen!",
-    });
-  } finally {
-    end();
   }
-});
+);
 
 /** Get all files of an user */
 router.get("/get-all-files/:userId", async (req, res) => {
-  const end = latencyHistogram.startTimer({ operation: "get-all-files" });
   try {
     const { userId } = req.params;
 
@@ -178,14 +174,11 @@ router.get("/get-all-files/:userId", async (req, res) => {
       success: false,
       message: "Fehler beim Abrufen der Dateien!",
     });
-  } finally {
-    end();
   }
 });
 
 /** Download a file */
 router.get("/download/:fileId", extractUserId, async (req, res) => {
-  const end = latencyHistogram.startTimer({ operation: "download" });
   try {
     const { fileId } = req.params;
     const userId = parseInt(req.userId, 10);
@@ -247,8 +240,6 @@ router.get("/download/:fileId", extractUserId, async (req, res) => {
       success: false,
       message: "Interner Serverfehler!",
     });
-  } finally {
-    end();
   }
 });
 

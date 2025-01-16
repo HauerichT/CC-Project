@@ -2,9 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const authRouter = require("./routes/authRouter");
 const fileRouter = require("./routes/fileRouter");
+const metricsRouter = require("./routes/metricsRouter");
 const http = require("http");
 const socketIo = require("socket.io");
-const { register } = require("./metrics");
+const { register, latencyHistogram } = require("./metrics");
 const { PrismaClient } = require("@prisma/client");
 
 const app = express();
@@ -24,16 +25,20 @@ app.use(express.json());
 
 // Handle Socket.IO connections
 io.on("connection", (socket) => {
-  console.log(`${socket.id} hat sich verbunden.`);
+  console.log("User connected:", socket.id);
 
-  // Benutzerraum beitreten
   socket.on("joinRoom", (userId) => {
-    console.log(`Socket ${socket.id} tritt Raum ${userId} bei.`);
-    socket.join(userId); // Benutzer tritt seinem eigenen Raum bei
+    socket.join(userId);
+    console.log(`User ${socket.id} joined room ${userId}`);
+  });
+
+  socket.on("leaveRoom", (userId) => {
+    socket.leave(userId);
+    console.log(`User ${socket.id} left room ${userId}`);
   });
 
   socket.on("disconnect", () => {
-    console.log(`${socket.id} hat sich getrennt.`);
+    console.log("User disconnected:", socket.id);
   });
 });
 
@@ -46,6 +51,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/auth", authRouter);
 app.use("/file", fileRouter);
+app.use("/metrics", metricsRouter);
 
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);

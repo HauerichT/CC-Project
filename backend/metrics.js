@@ -13,10 +13,10 @@ client.collectDefaultMetrics({ register });
 
 // Create a Histogram metric
 const latencyHistogram = new client.Histogram({
-  name: "operation_latency_seconds",
+  name: "socket_io_latency",
   help: "Latency of operations in seconds",
   labelNames: ["operation"],
-  buckets: [0.1, 0.5, 1, 2, 5, 10],
+  buckets: [10, 50, 100, 500, 1000], // Buckets für Latenz in ms
 });
 
 // Create a Counter metric

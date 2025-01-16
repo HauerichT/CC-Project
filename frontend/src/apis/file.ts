@@ -4,9 +4,12 @@ import { getUserIdFromToken } from "../utils/authUtils";
 
 export const upload = async (file: File) => {
   try {
+    const startTimestamp = Date.now();
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("userId", String(getUserIdFromToken()));
+    formData.append("startTimestamp", startTimestamp.toString());
 
     const response = await axios.post(`${API_URL}/file/upload`, formData, {
       headers: {
@@ -18,6 +21,7 @@ export const upload = async (file: File) => {
 
     return response.data;
   } catch (error) {
+    console.error("Fehler beim Upload:", error);
     throw new Error(String(error));
   }
 };
@@ -58,8 +62,11 @@ export const download = async (fileId: number, fileName: string) => {
 export const deleteFile = async (fileId: number) => {
   try {
     const userId = getUserIdFromToken();
+    const startTimestamp = Date.now();
     const response = await axios.delete(
-      `${API_URL}/file/delete/${fileId}/${localStorage.getItem("token")}`,
+      `${API_URL}/file/delete/${fileId}/${localStorage.getItem(
+        "token"
+      )}/${startTimestamp}`,
       {
         headers: {
           "user-id": String(userId),

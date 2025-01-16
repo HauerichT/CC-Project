@@ -5,8 +5,10 @@ import { getUserFiles, download, deleteFile } from "../apis/file";
 import useSnackbar from "../components/snackbar/UseSnackbarComponent";
 import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { socket } from "../utils/socket";
 import { getUserIdFromToken } from "../utils/authUtils";
+import { socket } from "../utils/socket";
+import axios from "axios";
+import { API_URL } from "../App";
 
 interface File {
   id: number;
@@ -29,15 +31,32 @@ export default function FileStoragePage() {
     }
   };
 
-  socket.on(
-    "fileUploaded",
-    ({
+  useEffect(() => {
+    const userId = getUserIdFromToken();
+    console.log("User ID for room:", userId);
+
+    socket.emit("joinRoom", userId);
+
+    fetchFiles();
+
+    const handleFileUploaded = async ({
       originalName,
       sessionId,
+      clientStartTimestamp,
     }: {
       originalName: string;
       sessionId: string;
+      clientStartTimestamp: number;
     }) => {
+      const endTimestamp = Date.now();
+      const latency = endTimestamp - clientStartTimestamp;
+
+      const response = await axios.post(`${API_URL}/metrics/report-latency`, {
+        latency: latency,
+        operation: "upload",
+      });
+      console.log("Response from report-latency:", response);
+
       if (sessionId === localStorage.getItem("token")) {
         showSnackbar(
           "Datei wurde erfolgreich hochgeladen: " + originalName,
@@ -51,18 +70,26 @@ export default function FileStoragePage() {
         );
       }
       fetchFiles();
-    }
-  );
+    };
 
-  socket.on(
-    "fileDeleted",
-    ({
+    const handleFileDeleted = async ({
       originalName,
       sessionId,
+      clientStartTimestamp,
     }: {
       originalName: string;
       sessionId: string;
+      clientStartTimestamp: number;
     }) => {
+      const endTimestamp = Date.now();
+      const latency = endTimestamp - clientStartTimestamp;
+
+      const response = await axios.post(`${API_URL}/metrics/report-latency`, {
+        latency: latency,
+        operation: "delete",
+      });
+      console.log("Response from report-latency:", response);
+
       if (sessionId === localStorage.getItem("token")) {
         showSnackbar(
           "Datei wurde erfolgreich gelöscht: " + originalName,
@@ -76,12 +103,17 @@ export default function FileStoragePage() {
         );
       }
       fetchFiles();
-    }
-  );
+    };
 
-  useEffect(() => {
-    socket.emit("joinRoom", getUserIdFromToken());
-    fetchFiles();
+    socket.on("fileUploaded", handleFileUploaded);
+    socket.on("fileDeleted", handleFileDeleted);
+
+    // Cleanup-Funktion: Listener entfernen und Raum verlassen
+    return () => {
+      socket.off("fileUploaded", handleFileUploaded);
+      socket.off("fileDeleted", handleFileDeleted);
+      socket.emit("leaveRoom", userId);
+    };
   }, []);
 
   const handleDownload = async (fileId: number, fileName: string) => {
@@ -133,7 +165,6 @@ export default function FileStoragePage() {
   return (
     <>
       <SnackbarComponent />
-
       <Box sx={{ height: "100vh", width: "100%", marginTop: "20px" }}>
         <DataGrid
           rows={files || []}
