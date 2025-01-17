@@ -50,49 +50,23 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
-  console.log(prisma);
-
   console.log("EMAIL PASSWORD: ", email, password);
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.User.findUnique({
+      where: { email: email },
     });
-
-    console.log("USER: ", user);
     if (!user) {
-      return res.status(200).json({
-        success: false,
-        message: "Nutzer existiert noch nicht.",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(200).json({
-        success: false,
-        message: "Passwort ist falsch.",
-      });
-    }
-
-    console.log("isPasswordValid: ", isPasswordValid);
-
-    const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Login erfolgreich!",
-      data: token,
-    });
+    // Überprüfen Sie das Passwort hier
+    res.json({ success: true, user });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
