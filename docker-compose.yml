@@ -19,19 +19,6 @@ services:
     environment:
       DATABASE_URL: "mysql://hauerich:HavTim!08092000@cc-project.database.windows.net:3306/cc-project"
 
-
-  database:
-    image: mysql:8
-    container_name: mysql
-    restart: always
-    environment:
-      MYSQL_DATABASE: cc_project
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-
   prometheus:
     image: prom/prometheus
     volumes:
@@ -51,5 +38,4 @@ services:
       - prometheus
 
 volumes:
-  mysql-data:
   grafana-data:
