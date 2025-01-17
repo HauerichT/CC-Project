@@ -15,7 +15,7 @@ const PORT = 8000;
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Erlaube alle Ursprünge
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -25,7 +25,7 @@ const io = socketIo(server, {
 // Middleware
 app.use(
   cors({
-    origin: "*", // Erlaube alle Ursprünge
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
