@@ -16,8 +16,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: "mysql://root:yourpassword@localhost:3306/cc_project"
-    depends_on:
-      - mysql
+    depends_on: []
 
   prometheus:
     image: prom/prometheus
