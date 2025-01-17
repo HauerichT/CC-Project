@@ -15,7 +15,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "mysql://k142291_cc-project:HavTim!08092000@188.68.47.224:3306/k142291_cc-project"
+      DATABASE_URL: ${DATABASE_URL}  # Verwendet die Umgebungsvariable aus der .env-Datei
+    env_file:
+      - ./backend/.env  # Verweist auf die .env-Datei im Backend-Ordner
     depends_on:
       - prometheus
 
