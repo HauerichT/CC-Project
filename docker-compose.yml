@@ -17,7 +17,7 @@ services:
     depends_on:
       - database
     environment:
-      DATABASE_URL: "mysql://root@host.docker.internal:3306/cc_project"
+      DATABASE_URL: "mysql://root@database:3306/cc_project"
 
   database:
     image: mysql:8
