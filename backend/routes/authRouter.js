@@ -53,7 +53,12 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   console.log("EMAIL PASSWORD: ", email, password);
+
+  console.log;
   try {
+    const result = await prisma.$queryRaw`SELECT DATABASE();`;
+    console.log("Aktuelle Datenbank:", result);
+
     const user = await prisma.user.findUnique({
       where: { email: email },
     });
