@@ -15,7 +15,7 @@ const PORT = 8000;
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: "http://74.234.199.69:3000",
   },
 });
 
