@@ -53,10 +53,13 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
+  console.log("EMAIL PASSWORD: ", email, password);
   try {
     const user = await prisma.user.findUnique({
       where: { email },
     });
+
+    console.log("USER: ", user);
     if (!user) {
       return res.status(200).json({
         success: false,
@@ -71,6 +74,8 @@ router.post("/login", async (req, res) => {
         message: "Passwort ist falsch.",
       });
     }
+
+    console.log("isPasswordValid: ", isPasswordValid);
 
     const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
       expiresIn: "1h",
