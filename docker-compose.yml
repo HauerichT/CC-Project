@@ -15,8 +15,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: "mysql://k142291_cc-project:HavTim!08092000@188.68.47.224:3306/k142291_cc-project"
     depends_on:
       - prometheus
 
