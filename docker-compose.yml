@@ -15,7 +15,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "mysql://hauerich:HavTim!08092000@cc-project.database.windows.net:3306/cc-project"
+      DATABASE_URL: "mysql://root@localhost:3306/cc_project"
+    depends_on:
+      - mysql
 
   prometheus:
     image: prom/prometheus
