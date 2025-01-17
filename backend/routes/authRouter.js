@@ -52,26 +52,45 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log("EMAIL PASSWORD: ", email, password);
 
-  console.log;
   try {
-    const result = await prisma.$queryRaw`SELECT DATABASE();`;
-    console.log("Aktuelle Datenbank:", result);
+    const users =
+      await prisma.$queryRaw`SELECT * FROM User WHERE email = ${email} LIMIT 1;`;
+    console.log(users);
+    const user = users[0];
 
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-    });
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(200).json({
+        success: false,
+        message: "Nutzer existiert noch nicht.",
+      });
     }
-    // Überprüfen Sie das Passwort hier
-    res.json({ success: true, user });
+
+    // Überprüfe das Passwort
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(200).json({
+        success: false,
+        message: "Passwort ist falsch.",
+      });
+    }
+
+    // Generiere das JWT-Token
+    const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login erfolgreich!",
+      data: token,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Fehler während des Logins!",
+    });
   }
 });
 
