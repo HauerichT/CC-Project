@@ -85,7 +85,7 @@ router.post(
       availabilityCounter.inc({ operation: "upload", status: "failure" });
       res.status(500).json({
         success: false,
-        message: "Fehler beim Upload!",
+        message: error.message || "Fehler beim Hochladen!",
       });
     }
   }
