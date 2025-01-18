@@ -17,7 +17,7 @@ const io = socketIo(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization", "token-auth"],
+    allowedHeaders: ["Content-Type", "Authorization", "token-auth", "user-id"],
     credentials: true,
   },
 });
@@ -27,7 +27,7 @@ app.use(
   cors({
     origin: "*",
     methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization", "token-auth"],
+    allowedHeaders: ["Content-Type", "Authorization", "token-auth", "user-id"],
     credentials: true,
   })
 );
