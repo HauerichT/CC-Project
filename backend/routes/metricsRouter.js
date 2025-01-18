@@ -7,6 +7,8 @@ router.post("/report-latency", (req, res) => {
   try {
     const { latency, operation } = req.body;
 
+    console.log("Latenz:", latency, "Operation:", operation);
+
     if (!latency || !operation) {
       return res.status(400).json({
         success: false,
