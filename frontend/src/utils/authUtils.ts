@@ -15,7 +15,7 @@ export const getUserIdFromToken = () => {
 
 export const logout = async () => {
   localStorage.removeItem("token");
-  window.location.href = "/login";
+  window.location.reload();
 };
 
 export const isLoggedIn = () => {
