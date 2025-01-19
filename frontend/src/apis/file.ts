@@ -19,11 +19,8 @@ export const upload = async (file: File) => {
       },
     });
 
-    console.log(response);
-
     return response.data;
   } catch (error) {
-    console.error("Fehler beim Upload:", error);
     throw new Error(String(error));
   }
 };
@@ -40,6 +37,8 @@ export const getUserFiles = async () => {
 
 export const download = async (fileId: number, fileName: string) => {
   try {
+    const startTimestamp = Date.now();
+
     const userId = getUserIdFromToken();
     const response = await axios.get(`${API_URL}/file/download/${fileId}`, {
       headers: {
@@ -55,6 +54,14 @@ export const download = async (fileId: number, fileName: string) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    const endTimestamp = Date.now();
+    const latency = endTimestamp - startTimestamp;
+
+    await axios.post(`${API_URL}/metrics/report-latency`, {
+      latency: latency,
+      operation: "download",
+    });
     return response.data;
   } catch (error) {
     throw new Error(`Fehler beim Herunterladen der Datei: ${error}`);

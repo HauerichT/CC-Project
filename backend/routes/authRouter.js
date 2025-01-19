@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
+const { availabilityCounter } = require("../metrics");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -9,9 +10,9 @@ const router = express.Router();
 const SECRET_KEY = "cc_project";
 
 router.post("/register", async (req, res) => {
-  const { email, password, name } = req.body;
-
   try {
+    const { email, password, name } = req.body;
+
     const existingUserByEmail = await prisma.user.findFirst({
       where: { email },
     });
@@ -51,14 +52,11 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const users =
-      await prisma.$queryRaw`SELECT * FROM User WHERE email = ${email} LIMIT 1;`;
-    console.log(users);
-    const user = users[0];
-
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
     if (!user) {
       return res.status(200).json({
         success: false,
@@ -66,7 +64,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Überprüfe das Passwort
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(200).json({
@@ -75,7 +72,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Generiere das JWT-Token
     const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
       expiresIn: "1h",
     });
@@ -86,10 +82,9 @@ router.post("/login", async (req, res) => {
       data: token,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Fehler während des Logins!",
     });
   }
 });

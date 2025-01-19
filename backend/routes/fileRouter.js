@@ -47,9 +47,8 @@ router.post(
   extractUserId,
   upload.single("file"),
   async (req, res) => {
-    console.log(`Upload-Handler aufgerufen: userId=${req.userId}`);
-    const clientStartTimestamp = parseInt(req.body.startTimestamp, 10);
     try {
+      const clientStartTimestamp = parseInt(req.body.startTimestamp, 10);
       const userId = parseInt(req.userId, 10);
       const { originalname, filename, path: filePath } = req.file;
 
