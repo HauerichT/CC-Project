@@ -9,7 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import FileStoragePage from "./pages/FileStoragePage";
 import ResponsiveNavbar from "./components/navigation/ResponsiveNavbar";
 
-export const API_URL = "http://74.234.199.69:8000";
+export const API_URL = "http://192.168.2.131:8000";
 
 export default function App() {
   return (
