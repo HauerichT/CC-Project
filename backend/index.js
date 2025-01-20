@@ -95,5 +95,5 @@ app.get("/health/database", async (req, res) => {
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`Server läuft auf http://localhost:${PORT}`);
+  console.log(`Server läuft auf http://http://74.234.199.69:${PORT}`);
 });
