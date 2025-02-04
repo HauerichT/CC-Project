@@ -3,12 +3,15 @@ const express = require("express");
 const router = express.Router();
 const { latencyHistogram } = require("../metrics");
 
+/**
+ * Report the latency of an operation.
+ */
 router.post("/report-latency", (req, res) => {
   try {
+    // Extract the latency and operation from the request
     const { latency, operation } = req.body;
 
-    console.log("Latenz:", latency, "Operation:", operation);
-
+    // Check if latency and operation are provided
     if (!latency || !operation) {
       return res.status(400).json({
         success: false,
@@ -16,6 +19,7 @@ router.post("/report-latency", (req, res) => {
       });
     }
 
+    // Observe the latency
     latencyHistogram.observe({ operation }, latency);
 
     res

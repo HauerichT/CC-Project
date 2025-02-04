@@ -2,10 +2,15 @@ import axios from "axios";
 import { API_URL } from "../App";
 import { getUserIdFromToken } from "../utils/authUtils";
 
+/**
+ * Upload file.
+ */
 export const upload = async (file: File) => {
   try {
+    // Measure latency
     const startTimestamp = Date.now();
 
+    // Send request
     const formData = new FormData();
     formData.append("file", file);
     formData.append("userId", String(getUserIdFromToken()));
@@ -25,6 +30,9 @@ export const upload = async (file: File) => {
   }
 };
 
+/**
+ * Get all files of the user.
+ */
 export const getUserFiles = async () => {
   try {
     const userId = getUserIdFromToken();
@@ -35,10 +43,15 @@ export const getUserFiles = async () => {
   }
 };
 
+/**
+ * Download file.
+ */
 export const download = async (fileId: number, fileName: string) => {
   try {
+    // Measure latency
     const startTimestamp = Date.now();
 
+    // Send request
     const userId = getUserIdFromToken();
     const response = await axios.get(`${API_URL}/file/download/${fileId}`, {
       headers: {
@@ -55,6 +68,7 @@ export const download = async (fileId: number, fileName: string) => {
     link.click();
     document.body.removeChild(link);
 
+    // Measure latency
     const endTimestamp = Date.now();
     const latency = endTimestamp - startTimestamp;
 
@@ -68,6 +82,9 @@ export const download = async (fileId: number, fileName: string) => {
   }
 };
 
+/**
+ * Delete file.
+ */
 export const deleteFile = async (fileId: number) => {
   try {
     const userId = getUserIdFromToken();

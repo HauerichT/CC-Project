@@ -41,13 +41,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-/** Upload a new file */
+/**
+ * Upload a new file.
+ */
 router.post(
   "/upload",
   extractUserId,
   upload.single("file"),
   async (req, res) => {
     try {
+      // Extract information from the request
       const clientStartTimestamp = parseInt(req.body.startTimestamp, 10);
       const userId = parseInt(req.userId, 10);
       const { originalname, filename, path: filePath } = req.file;
@@ -68,13 +71,14 @@ router.post(
         },
       });
 
+      // Send real time information to all clients
       req.io.to(userId).emit("fileUploaded", {
         originalName: originalname,
         sessionId: req.headers["token-auth"],
         clientStartTimestamp: clientStartTimestamp,
       });
-
       availabilityCounter.inc({ operation: "upload", status: "success" });
+
       res.status(200).json({
         success: true,
         message: "Datei erfolgreich hochgeladen.",
@@ -90,15 +94,16 @@ router.post(
   }
 );
 
-/** Delete a existing file */
+/**
+ * Delete a existing file.
+ */
 router.delete(
   "/delete/:fileId/:token/:startTimestamp",
   extractUserId,
   async (req, res) => {
     try {
+      // Extract information from the request
       const { fileId, token, startTimestamp } = req.params;
-
-      console.log(`Upload-Handler aufgerufen: userId=${req.userId}`);
       const clientStartTimestamp = parseInt(startTimestamp, 10);
 
       // Find file to delete in database
@@ -127,8 +132,8 @@ router.delete(
         sessionId: token,
         clientStartTimestamp: clientStartTimestamp,
       });
-
       availabilityCounter.inc({ operation: "delete", status: "success" });
+
       res.status(200).json({
         success: true,
         message: "Datei erfolgreich gelöscht.",
@@ -144,9 +149,12 @@ router.delete(
   }
 );
 
-/** Get all files of an user */
+/**
+ * Get all files of an user.
+ */
 router.get("/get-all-files/:userId", async (req, res) => {
   try {
+    // Extract information from the request
     const { userId } = req.params;
 
     // Select all files of the user
@@ -160,8 +168,8 @@ router.get("/get-all-files/:userId", async (req, res) => {
         uploadedAt: true,
       },
     });
-
     availabilityCounter.inc({ operation: "get-all-files", status: "success" });
+
     res.status(200).json({
       success: true,
       files,
@@ -176,7 +184,9 @@ router.get("/get-all-files/:userId", async (req, res) => {
   }
 });
 
-/** Download a file */
+/**
+ * Download a file.
+ */
 router.get("/download/:fileId", extractUserId, async (req, res) => {
   try {
     const { fileId } = req.params;
