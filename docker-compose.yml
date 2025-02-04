@@ -14,22 +14,8 @@ services:
       context: ./backend
     ports:
       - "8000:8000"
-    depends_on:
-      - database
     environment:
-      DATABASE_URL: "mysql://root@host.docker.internal:3306/cc_project"
-
-  database:
-    image: mysql:8
-    container_name: mysql
-    restart: always
-    environment:
-      MYSQL_DATABASE: cc_project
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
+      DATABASE_URL: "mysql://k142291_cc-project:HavTim!08092000@188.68.47.224:3306/k142291_cc-project"
 
   prometheus:
     image: prom/prometheus
@@ -37,18 +23,15 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
-    depends_on:
-      - backend
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3001:3000"
+      - "3002:3000"
     volumes:
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
 
 volumes:
-  mysql-data:
   grafana-data:

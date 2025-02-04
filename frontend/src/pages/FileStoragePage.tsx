@@ -33,7 +33,6 @@ export default function FileStoragePage() {
 
   useEffect(() => {
     const userId = getUserIdFromToken();
-    console.log("User ID for room:", userId);
 
     socket.emit("joinRoom", userId);
 
@@ -51,11 +50,10 @@ export default function FileStoragePage() {
       const endTimestamp = Date.now();
       const latency = endTimestamp - clientStartTimestamp;
 
-      const response = await axios.post(`${API_URL}/metrics/report-latency`, {
+      await axios.post(`${API_URL}/metrics/report-latency`, {
         latency: latency,
         operation: "upload",
       });
-      console.log("Response from report-latency:", response);
 
       if (sessionId === localStorage.getItem("token")) {
         showSnackbar(
@@ -84,11 +82,10 @@ export default function FileStoragePage() {
       const endTimestamp = Date.now();
       const latency = endTimestamp - clientStartTimestamp;
 
-      const response = await axios.post(`${API_URL}/metrics/report-latency`, {
+      await axios.post(`${API_URL}/metrics/report-latency`, {
         latency: latency,
         operation: "delete",
       });
-      console.log("Response from report-latency:", response);
 
       if (sessionId === localStorage.getItem("token")) {
         showSnackbar(

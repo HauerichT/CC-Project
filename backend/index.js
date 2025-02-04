@@ -16,11 +16,21 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "*",
+    methods: ["GET", "POST", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "token-auth", "user-id"],
+    credentials: true,
   },
 });
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "token-auth", "user-id"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Handle Socket.IO connections
